@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Gather | Video meeting</title>
+	<link rel="stylesheet" href="style.css">
+</head>
+<body>
+	<main id="join-screen" class="join-screen">
+		<div class="join-copy">
+			<div class="wordmark landing-mark"><span>G</span> gather</div>
+			<p class="eyebrow">VIDEO MEETINGS, WITHOUT THE FUSS</p>
+			<h1>Make space<br><em>to meet.</em></h1>
+			<p class="intro">Start instantly, invite anyone with a link, and keep the conversation moving.</p>
+		</div>
+		<section class="join-card">
+			<div class="brand-mark">G</div>
+			<h2>Ready when you are</h2>
+			<div class="entry-actions">
+				<button id="new-meeting-button" class="primary-button" type="button">Start an instant meeting <span aria-hidden="true">&#8594;</span></button>
+				<button id="get-link-button" class="secondary-button" type="button"><span>&#128279;</span> Get a meeting link</button>
+				<button id="schedule-button" class="secondary-button" type="button"><span>&#128197;</span> Schedule in Google Calendar</button>
+			</div>
+			<div class="invite-info"><strong>How to invite others</strong><span>Click “Get a meeting link”, copy the link, and send it to your participants.</span></div>
+			<div id="invite-box" class="invite-box hidden"><label for="invite-link">Your meeting link</label><div class="invite-row"><input id="invite-link" readonly><button id="copy-invite-button" type="button">Copy</button></div><p>Share this link, then join the meeting below.</p></div>
+			<div class="join-divider"><span>or join a meeting</span></div>
+			<form id="join-form">
+			<label for="name">Your name</label>
+			<input id="name" name="name" autocomplete="name" placeholder="e.g. Alex Morgan" required maxlength="40">
+			<label for="room">Meeting link or code</label>
+			<input id="room" name="room" placeholder="e.g. morning-huddle" required maxlength="160">
+			<button class="text-button" type="submit">Join meeting <span aria-hidden="true">&#8594;</span></button>
+			<p id="join-error" class="error" role="alert"></p>
+			</form>
+			<div id="schedule-fields" class="schedule-fields hidden">
+				<label for="schedule-title">Meeting title</label><input id="schedule-title" placeholder="Team sync">
+				<label for="schedule-date">Date and time</label><input id="schedule-date" type="datetime-local">
+				<button id="calendar-link-button" class="primary-button" type="button">Create calendar invite <span aria-hidden="true">&#8594;</span></button>
+			</div>
+		</section>
+	</main>
+
+	<main id="meeting-screen" class="meeting-screen hidden">
+		<header class="topbar">
+			<div class="wordmark"><span>G</span> gather</div>
+			<div class="room-label"><span class="live-dot"></span><span id="room-title"></span><button id="copy-link-button" class="copy-link" type="button">Copy invite link</button></div>
+			<div class="participant-count"><span id="participant-count">1</span> in room</div>
+		</header>
+		<section class="meeting-body">
+			<div id="video-grid" class="video-grid"></div>
+			<aside id="chat-panel" class="chat-panel">
+				<div class="chat-header"><div><p class="eyebrow">ROOM CHAT</p><h2>Conversation</h2></div><button id="close-chat" class="icon-button" type="button" aria-label="Close chat">&#10005;</button></div>
+				<div id="messages" class="messages" aria-live="polite"></div>
+				<form id="chat-form" class="chat-form"><input id="chat-input" placeholder="Write a message..." maxlength="1000" autocomplete="off"><button type="submit" aria-label="Send message">&#8594;</button></form>
+			</aside>
+			<aside id="host-panel" class="host-panel hidden">
+				<div class="chat-header"><div><p class="eyebrow">HOST CONTROLS</p><h2>Participants</h2></div><button id="close-host" class="icon-button" type="button" aria-label="Close host controls">&#10005;</button></div>
+				<div id="participant-list" class="participant-list"></div>
+			</aside>
+			<p id="meeting-error" class="meeting-error" role="alert"></p>
+		</section>
+		<footer class="controls">
+			<button id="mic-button" class="control-button" type="button"><span>&#127908;</span><small>Mute</small></button>
+			<button id="camera-button" class="control-button" type="button"><span>&#128249;</span><small>Camera</small></button>
+			<button id="hand-button" class="control-button" type="button"><span>&#9995;</span><small>Raise hand</small></button>
+			<button id="share-button" class="control-button" type="button"><span>&#8593;</span><small>Share screen</small></button>
+			<button id="chat-button" class="control-button" type="button"><span>&#9993;</span><small>Chat</small></button>
+			<button id="host-button" class="control-button hidden" type="button"><span>&#9881;</span><small>Host</small></button>
+			<button id="record-button" class="control-button" type="button"><span>&#9679;</span><small>Record</small></button>
+			<button id="leave-button" class="control-button leave" type="button"><span>&#10140;</span><small>Leave</small></button>
+		</footer>
+	</main>
+	<script src="/socket.io/socket.io.js"></script>
+	<script src="script.js"></script>
+</body>
+</html>
