@@ -11,6 +11,7 @@ const io = new Server(server, {
 
 const frontendPath = path.join(__dirname, '..', 'frontend');
 app.use(express.static(frontendPath));
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.get('/api/ice-servers', (req, res) => {
 	const iceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
 	if (process.env.TURN_URL && process.env.TURN_USERNAME && process.env.TURN_CREDENTIAL) {
@@ -106,5 +107,5 @@ io.on('connection', (socket) => {
 });
 
 const port = Number(process.env.PORT) || 5000;
-server.listen(port, () => console.log(`Video meeting server running at http://localhost:${port}`));
+server.listen(port, '0.0.0.0', () => console.log(`Video meeting server running on port ${port}`));
 
