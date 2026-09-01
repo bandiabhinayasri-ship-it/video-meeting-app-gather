@@ -45,7 +45,13 @@
 		<header class="topbar">
 			<div class="wordmark"><span>G</span> gather</div>
 			<div class="room-label"><span class="live-dot"></span><span id="room-title"></span><button id="copy-link-button" class="copy-link" type="button">Copy invite link</button></div>
-			<div class="participant-count"><span id="participant-count">1</span> in room</div>
+			<div class="status-row">
+				<div id="audio-device-status" class="audio-device-status hidden">
+					<span id="audio-device-icon">🎧</span>
+					<span id="audio-device-label">Headphones</span>
+				</div>
+				<div class="participant-count"><span id="participant-count">1</span> in room</div>
+			</div>
 		</header>
 		<section class="meeting-body">
 			<div id="video-grid" class="video-grid"></div>
@@ -56,7 +62,16 @@
 			</aside>
 			<aside id="host-panel" class="host-panel hidden">
 				<div class="chat-header"><div><p class="eyebrow">HOST CONTROLS</p><h2>Participants</h2></div><button id="close-host" class="icon-button" type="button" aria-label="Close host controls">&#10005;</button></div>
+				<div id="waiting-queue" class="waiting-queue hidden">
+					<p class="eyebrow">WAITING FOR APPROVAL</p>
+					<div id="pending-users"></div>
+				</div>
 				<div id="participant-list" class="participant-list"></div>
+			</aside>
+			<aside id="file-panel" class="file-panel hidden">
+				<div class="chat-header"><div><p class="eyebrow">FILE SHARING</p><h2>Files</h2></div><button id="close-files" class="icon-button" type="button" aria-label="Close files">&#10005;</button></div>
+				<div id="file-requests" class="file-list"></div>
+				<div id="active-transfers" class="file-list"></div>
 			</aside>
 			<p id="meeting-error" class="meeting-error" role="alert"></p>
 		</section>
@@ -66,10 +81,20 @@
 			<button id="hand-button" class="control-button" type="button"><span>&#9995;</span><small>Raise hand</small></button>
 			<button id="share-button" class="control-button" type="button"><span>&#8593;</span><small>Share screen</small></button>
 			<button id="chat-button" class="control-button" type="button"><span>&#9993;</span><small>Chat</small></button>
+			<button id="file-button" class="control-button hidden" type="button"><span>&#128451;</span><small>Files</small></button>
 			<button id="host-button" class="control-button hidden" type="button"><span>&#9881;</span><small>Host</small></button>
 			<button id="record-button" class="control-button" type="button"><span>&#9679;</span><small>Record</small></button>
 			<button id="leave-button" class="control-button leave" type="button"><span>&#10140;</span><small>Leave</small></button>
 		</footer>
+	</main>
+
+	<main id="waiting-screen" class="waiting-screen hidden">
+		<div class="waiting-card">
+			<div class="brand-mark">G</div>
+			<h2>Waiting for host approval</h2>
+			<p id="waiting-message">The host will notify you when you can join the meeting.</p>
+			<button id="cancel-wait-button" class="secondary-button" type="button">Cancel</button>
+		</div>
 	</main>
 	<script src="/socket.io/socket.io.js"></script>
 	<script src="script.js"></script>
