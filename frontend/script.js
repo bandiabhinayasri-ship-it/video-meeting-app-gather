@@ -293,7 +293,8 @@ async function startMeeting(event) {
 		$('room-title').textContent = currentRoom;
 		$('copy-link-button').title = meetingLink();
 		joinScreen.classList.add('hidden');
-		meetingScreen.classList.remove('hidden');
+		meetingScreen.classList.add('hidden');
+		waitingScreen.classList.add('hidden');
 		socket.emit('join-room', { roomId: currentRoom, name: displayName });
 	} catch (error) {
 		$('join-error').textContent = error.name === 'NotAllowedError' ? 'Camera and microphone access is required.' : 'Could not access your camera. Check your device and try again.';
@@ -338,7 +339,17 @@ socket.on('approval-rejected', () => {
 	$('join-error').textContent = 'The host declined your request to join.';
 });
 socket.on('waiting-queue', renderWaitingQueue);
-socket.on('host-status', (host) => { isHost = host; $('host-button').classList.toggle('hidden', !host); $('host-panel').classList.toggle('hidden', !host); $('record-button').classList.toggle('hidden', !host); renderParticipants(); });
+socket.on('host-status', (host) => {
+	isHost = host;
+	$('host-button').classList.toggle('hidden', !host);
+	$('host-panel').classList.toggle('hidden', !host);
+	$('record-button').classList.toggle('hidden', !host);
+	if (host) {
+		waitingScreen.classList.add('hidden');
+		meetingScreen.classList.remove('hidden');
+	}
+	renderParticipants();
+});
 socket.on('host-changed', (id) => { const participant = participants.get(id); if (participant) participant.isHost = true; renderParticipants(); });
 socket.on('participant-role-changed', ({ id, role }) => {
 	const participant = participants.get(id);
