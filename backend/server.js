@@ -34,10 +34,13 @@ const rooms = new Map();
 const waitingQueues = new Map();
 
 io.on('connection', (socket) => {
-	socket.on('join-room', ({ roomId, name }) => {
+	socket.on('join-room', ({ roomId, name }, acknowledge) => {
 		const cleanRoomId = String(roomId || '').trim().slice(0, 80);
 		const cleanName = String(name || 'Guest').trim().slice(0, 40) || 'Guest';
-		if (!cleanRoomId) return socket.emit('join-error', 'Enter a room name to continue.');
+		if (!cleanRoomId) {
+			socket.emit('join-error', 'Enter a room name to continue.');
+			return acknowledge?.({ state: 'error' });
+		}
 
 		const room = rooms.get(cleanRoomId);
 		const isHost = !room || room.size === 0;
@@ -53,6 +56,7 @@ io.on('connection', (socket) => {
 			socket.emit('room-users', []);
 			socket.emit('host-status', true);
 			socket.emit('waiting-queue', []);
+			acknowledge?.({ state: 'approved', host: true });
 		} else {
 			const waitingQueue = waitingQueues.get(cleanRoomId) || new Map();
 			waitingQueue.set(socket.id, { name: cleanName, state: 'pending', socketId: socket.id });
@@ -63,6 +67,7 @@ io.on('connection', (socket) => {
 			socket.emit('waiting-room', { status: 'pending', message: 'Waiting for host to approve...' });
 			const queueList = [...waitingQueue.entries()].map(([id, user]) => ({ id, ...user }));
 			io.to(cleanRoomId).emit('waiting-queue', queueList);
+			acknowledge?.({ state: 'pending' });
 		}
 	});
 

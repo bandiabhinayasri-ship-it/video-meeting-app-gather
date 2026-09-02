@@ -297,7 +297,16 @@ async function startMeeting(event) {
 		joinScreen.classList.add('hidden');
 		meetingScreen.classList.add('hidden');
 		waitingScreen.classList.add('hidden');
-		socket.emit('join-room', { roomId: currentRoom, name: displayName });
+		socket.emit('join-room', { roomId: currentRoom, name: displayName }, ({ state, host }) => {
+			if (state === 'pending') {
+				joinScreen.classList.add('hidden');
+				meetingScreen.classList.add('hidden');
+				waitingScreen.classList.remove('hidden');
+			} else if (state === 'approved' && host) {
+				waitingScreen.classList.add('hidden');
+				meetingScreen.classList.remove('hidden');
+			}
+		});
 	} catch (error) {
 		$('join-error').textContent = error.name === 'NotAllowedError' ? 'Camera and microphone access is required.' : 'Could not access your camera. Check your device and try again.';
 	}
