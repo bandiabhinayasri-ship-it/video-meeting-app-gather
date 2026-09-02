@@ -28,7 +28,7 @@ function addVideo(id, name, stream, local = false) {
 	let tile = document.getElementById(`tile-${id}`);
 	if (!tile) {
 		tile = document.createElement('article');
-		tile.className = 'video-tile';
+		tile.className = `video-tile${local ? ' local-tile' : ''}`;
 		tile.id = `tile-${id}`;
 		tile.innerHTML = `<video autoplay playsinline></video><div class="video-overlay"><div class="avatar-overlay">${name.charAt(0).toUpperCase()}</div><div class="mute-badge">🔇</div></div><div class="tile-footer"><span class="avatar">${name.charAt(0).toUpperCase()}</span><span class="tile-name"></span><span class="hand-indicator" aria-label="Hand raised">&#9995;</span></div>`;
 		tile.querySelector('.tile-name').textContent = local ? `${name} (You)` : name;
