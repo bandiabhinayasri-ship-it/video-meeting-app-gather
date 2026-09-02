@@ -12,6 +12,7 @@ let recorder;
 let recordingChunks = [];
 const participants = new Map();
 let iceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
+let pendingQueue = [];
 let preferredAudioInputId = null;
 let preferredAudioOutputId = null;
 let currentConnectionState = 'new';
@@ -126,8 +127,9 @@ function renderParticipants() {
 function renderWaitingQueue(queue) {
 	const queueDiv = $('waiting-queue');
 	const pendingUsersDiv = $('pending-users');
+	pendingQueue = Array.isArray(queue) ? queue : [];
 	
-	if (!queue || queue.length === 0 || !isHost) {
+	if (pendingQueue.length === 0 || !isHost) {
 		queueDiv.classList.add('hidden');
 		return;
 	}
@@ -135,7 +137,7 @@ function renderWaitingQueue(queue) {
 	queueDiv.classList.remove('hidden');
 	pendingUsersDiv.replaceChildren();
 	
-	for (const user of queue) {
+	for (const user of pendingQueue) {
 		const row = document.createElement('div');
 		row.className = 'pending-user';
 		row.innerHTML = `<span>${user.name}</span>`;
@@ -344,6 +346,7 @@ socket.on('host-status', (host) => {
 	$('host-button').classList.toggle('hidden', !host);
 	$('host-panel').classList.toggle('hidden', !host);
 	$('record-button').classList.toggle('hidden', !host);
+	renderWaitingQueue(pendingQueue);
 	if (host) {
 		waitingScreen.classList.add('hidden');
 		meetingScreen.classList.remove('hidden');
