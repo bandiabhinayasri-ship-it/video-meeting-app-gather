@@ -30,7 +30,7 @@ function addVideo(id, name, stream, local = false) {
 		tile = document.createElement('article');
 		tile.className = `video-tile${local ? ' local-tile' : ''}`;
 		tile.id = `tile-${id}`;
-		tile.innerHTML = `<video autoplay playsinline></video><div class="video-overlay"><div class="avatar-overlay">${name.charAt(0).toUpperCase()}</div><div class="mute-badge">🔇</div></div><div class="tile-footer"><span class="avatar">${name.charAt(0).toUpperCase()}</span><span class="tile-name"></span><span class="hand-indicator" aria-label="Hand raised">&#9995;</span></div>`;
+		tile.innerHTML = `<video autoplay playsinline></video>${local ? '' : `<div class="video-overlay"><div class="avatar-overlay">${name.charAt(0).toUpperCase()}</div><div class="mute-badge">🔇</div></div>`}<div class="tile-footer"><span class="avatar">${name.charAt(0).toUpperCase()}</span><span class="tile-name"></span><span class="hand-indicator" aria-label="Hand raised">&#9995;</span></div>`;
 		tile.querySelector('.tile-name').textContent = local ? `${name} (You)` : name;
 		videoGrid.appendChild(tile);
 	}
@@ -51,6 +51,7 @@ function updateBadges(id) {
 	const participant = participants.get(id);
 	const avatarOverlay = tile.querySelector('.avatar-overlay');
 	const muteBadge = tile.querySelector('.mute-badge');
+	if (!avatarOverlay || !muteBadge) return;
 	
 	// Show avatar overlay if video is muted
 	if (participant?.mediaState?.videoMuted) {
