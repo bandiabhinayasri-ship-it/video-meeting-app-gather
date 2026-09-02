@@ -30,7 +30,7 @@ function addVideo(id, name, stream, local = false) {
 		tile = document.createElement('article');
 		tile.className = `video-tile${local ? ' local-tile' : ''}`;
 		tile.id = `tile-${id}`;
-		tile.innerHTML = `<video autoplay playsinline></video>${local ? '' : `<div class="video-overlay"><div class="avatar-overlay">${name.charAt(0).toUpperCase()}</div><div class="mute-badge">🔇</div></div>`}<div class="tile-footer"><span class="avatar">${name.charAt(0).toUpperCase()}</span><span class="tile-name"></span><span class="hand-indicator" aria-label="Hand raised">&#9995;</span></div>`;
+		tile.innerHTML = `<video autoplay playsinline></video><div class="video-overlay"><div class="avatar-overlay">${name.charAt(0).toUpperCase()}</div><div class="mute-badge">🔇</div></div><div class="tile-footer"><span class="avatar">${name.charAt(0).toUpperCase()}</span><span class="tile-name"></span><span class="hand-indicator" aria-label="Hand raised">&#9995;</span></div>`;
 		tile.querySelector('.tile-name').textContent = local ? `${name} (You)` : name;
 		videoGrid.appendChild(tile);
 	}
@@ -55,8 +55,10 @@ function updateBadges(id) {
 	
 	// Show avatar overlay if video is muted
 	if (participant?.mediaState?.videoMuted) {
+		tile.querySelector('video').style.display = 'none';
 		avatarOverlay.classList.add('visible');
 	} else {
+		tile.querySelector('video').style.display = 'block';
 		avatarOverlay.classList.remove('visible');
 	}
 	
@@ -66,6 +68,16 @@ function updateBadges(id) {
 	} else {
 		muteBadge.classList.remove('visible');
 	}
+}
+
+function publishMediaState() {
+	const audioMuted = localStream?.getAudioTracks()[0]?.enabled === false;
+	const videoMuted = localStream?.getVideoTracks()[0]?.enabled === false;
+	const participant = participants.get(socket.id);
+	if (participant) participant.mediaState = { audioMuted, videoMuted };
+	updateBadges(localTileId || socket.id);
+	renderParticipants();
+	socket.emit('media-state', { audioMuted, videoMuted });
 }
 
 function updateCount() { $('participant-count').textContent = videoGrid.children.length; }
@@ -311,8 +323,9 @@ socket.on('signal', async ({ sender, signal }) => {
 });
 socket.on('user-left', (id) => { participants.delete(id); renderParticipants(); removePeer(id); });
 socket.on('join-error', (message) => { $('join-error').textContent = message; });
-socket.on('waiting-room', () => {
+	socket.on('waiting-room', () => {
 	joinScreen.classList.add('hidden');
+	meetingScreen.classList.add('hidden');
 	waitingScreen.classList.remove('hidden');
 });
 socket.on('approval-granted', () => {
@@ -348,7 +361,7 @@ socket.on('mute-request', () => {
 		track.enabled = false;
 		$('mic-button').classList.add('muted');
 		document.querySelector('#mic-button small').textContent = 'Unmute';
-		socket.emit('media-state', { audioMuted: true, videoMuted: localStream?.getVideoTracks()[0]?.enabled === false });
+		publishMediaState();
 	}
 });
 socket.on('removed-by-host', () => { localStream?.getTracks().forEach((track) => track.stop()); showMeetingError('The host removed you from the meeting.'); window.setTimeout(() => window.location.reload(), 1500); });
@@ -441,8 +454,7 @@ $('mic-button').addEventListener('click', () => {
 	track.enabled = !track.enabled;
 	$('mic-button').classList.toggle('muted', !track.enabled);
 	document.querySelector('#mic-button small').textContent = track.enabled ? 'Mute' : 'Unmute';
-	const videoMuted = localStream?.getVideoTracks()[0]?.enabled === false;
-	socket.emit('media-state', { audioMuted: !track.enabled, videoMuted });
+	publishMediaState();
 });
 $('camera-button').addEventListener('click', () => {
 	const track = localStream?.getVideoTracks()[0];
@@ -450,8 +462,7 @@ $('camera-button').addEventListener('click', () => {
 	track.enabled = !track.enabled;
 	$('camera-button').classList.toggle('muted', !track.enabled);
 	document.querySelector('#camera-button small').textContent = track.enabled ? 'Camera' : 'Video off';
-	const audioMuted = localStream?.getAudioTracks()[0]?.enabled === false;
-	socket.emit('media-state', { audioMuted, videoMuted: !track.enabled });
+	publishMediaState();
 });
 $('hand-button').addEventListener('click', () => { handRaised = !handRaised; $('hand-button').classList.toggle('active', handRaised); document.querySelector('#hand-button small').textContent = handRaised ? 'Lower hand' : 'Raise hand'; socket.emit('hand-raise', handRaised); });
 $('share-button').addEventListener('click', async () => {

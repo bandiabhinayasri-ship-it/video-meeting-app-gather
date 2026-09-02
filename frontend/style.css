@@ -1,7 +1,5 @@
 .mute-badge { background: rgba(23, 33, 38, 0.9) !important; }
 .meeting-error { background: var(--ink) !important; }
-.local-tile .mute-badge { display: none !important; }
-.local-tile .video-overlay { display: none !important; }
 .meeting-error { display: none !important; }
 .mute-badge { background: rgba(23, 33, 38, 0.9); }
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@500;600;700&display=swap');

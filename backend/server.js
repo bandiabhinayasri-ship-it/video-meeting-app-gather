@@ -115,7 +115,10 @@ io.on('connection', (socket) => {
 
 	socket.on('media-state', ({ audioMuted, videoMuted }) => {
 		const roomId = socket.data.roomId;
-		if (!roomId) return;
+		const room = rooms.get(roomId);
+		const participant = room?.get(socket.id);
+		if (!roomId || !participant) return;
+		participant.mediaState = { audioMuted: Boolean(audioMuted), videoMuted: Boolean(videoMuted) };
 		io.to(roomId).emit('participant-media-state', {
 			id: socket.id,
 			audioMuted: Boolean(audioMuted),
