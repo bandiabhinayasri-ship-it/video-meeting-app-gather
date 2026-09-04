@@ -607,3 +607,25 @@ document.addEventListener('click', () => {
 
 const roomFromUrl = new URLSearchParams(window.location.search).get('room');
 if (roomFromUrl) $('room').value = roomFromUrl;
+socket.on('waiting-for-approval', () => {
+    const overlay = document.getElementById('waiting-overlay');
+    if (overlay) overlay.style.display = 'flex';
+});
+
+socket.on('admission-granted', () => {
+    const overlay = document.getElementById('waiting-overlay');
+    if (overlay) overlay.style.display = 'none';
+});
+
+socket.on('admission-rejected', () => {
+    alert('The host declined your request to join.');
+    window.location.reload();
+});
+
+socket.on('user-waiting', ({ id, username }) => {
+    if (confirm(`User "${username}" wants to join. Allow entry?`)) {
+        socket.emit('approve-user', { roomId: ROOM_ID, userId: id });
+    } else {
+        socket.emit('reject-user', { roomId: ROOM_ID, userId: id });
+    }
+});
