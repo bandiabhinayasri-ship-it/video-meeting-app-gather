@@ -427,9 +427,33 @@ socket.on('join-error', (message) => { $('join-error').textContent = message; })
 	meetingScreen.classList.add('hidden');
 	waitingScreen.classList.remove('hidden');
 });
+function syncMeetingControls() {
+	const visibleControls = [
+		$('camera-button'),
+		$('mic-button'),
+		$('reaction-button'),
+		$('more-button'),
+		$('leave-button'),
+		$('switch-camera-button'),
+		$('hand-button'),
+		$('captions-button'),
+		$('share-button'),
+		$('chat-button'),
+		$('people-button'),
+		$('activities-button'),
+		$('file-button'),
+		$('record-button'),
+		$('fullscreenBtn'),
+		$('top-share-button'),
+	];
+	visibleControls.forEach((button) => button && button.classList.remove('hidden'));
+	$('meeting-id-detail') && ($('meeting-id-detail').textContent = currentRoom || 'Meeting');
+}
+
 socket.on('approval-granted', () => {
 	waitingScreen.classList.add('hidden');
 	meetingScreen.classList.remove('hidden');
+	syncMeetingControls();
 });
 socket.on('approval-rejected', () => {
 	waitingScreen.classList.add('hidden');
@@ -451,6 +475,7 @@ socket.on('host-status', (host) => {
 	if (host) {
 		waitingScreen.classList.add('hidden');
 		meetingScreen.classList.remove('hidden');
+		syncMeetingControls();
 	}
 	renderParticipants();
 });
@@ -651,7 +676,9 @@ $('share-button').addEventListener('click', async () => {
 		addVideo(localTileId, displayName, screenStream, true);
 		track.onended = stopSharing;
 		$('share-button').classList.add('active');
+		$('top-share-button')?.classList.add('active');
 		document.querySelector('#share-button small').textContent = 'Stop sharing';
+		$('top-share-button') && ($('top-share-button').querySelector('span').textContent = '◉');
 		if (isPresenter) showMeetingToast('You are presenting to the meeting.');
 	} catch (error) {
 		if (error.name === 'AbortError' || error.name === 'NotAllowedError') return;
@@ -671,7 +698,9 @@ function stopSharing() {
 	screenStream = null;
 	addVideo(localTileId, displayName, localStream, true);
 	$('share-button').classList.remove('active');
+	$('top-share-button')?.classList.remove('active');
 	document.querySelector('#share-button small').textContent = 'Share screen';
+	if ($('top-share-button')) $('top-share-button').querySelector('span').textContent = '◉';
 	if (isPresenter && isHost) {
 		isPresenter = false;
 		socket.emit('participant-role-changed', { id: socket.id, role: 'participant' });
@@ -814,18 +843,12 @@ function setUtilityPanelOpen(isOpen) {
 }
 $('more-button').addEventListener('click', () => setUtilityPanelOpen(utilityPanel.classList.contains('hidden')));
 $('close-utility').addEventListener('click', () => setUtilityPanelOpen(false));
-$('more-hand-button').addEventListener('click', () => $('hand-button').click());
-$('more-present-button').addEventListener('click', () => $('share-button').click());
 $('more-captions-button').addEventListener('click', () => $('captions-button').click());
 $('more-audio-button').addEventListener('click', () => {
 	setUtilityPanelOpen(true);
 	$('microphone-input-select')?.focus();
 });
-$('more-go-button').addEventListener('click', () => {
-	const toggle = $('audio-only-toggle');
-	toggle.checked = !toggle.checked;
-	toggle.dispatchEvent(new Event('change'));
-});
+$('top-share-button')?.addEventListener('click', () => $('share-button').click());
 $('more-chat-button').addEventListener('click', () => { setUtilityPanelOpen(false); setChatPanelOpen(true); });
 $('more-settings-button').addEventListener('click', () => {
 	setUtilityPanelOpen(true);

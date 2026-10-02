@@ -294,8 +294,22 @@ function renderWaitingQueue(queue) {
 	}
 }
 
+async function ensureLocalAudioTrack() {
+	if (!localStream || localStream.getAudioTracks().length) return;
+	try {
+		const audioOnly = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+		const micTrack = audioOnly.getAudioTracks()[0];
+		if (micTrack) localStream.addTrack(micTrack);
+		audioOnly.getTracks().forEach((track) => track.stop());
+	} catch {
+		showMeetingToast('Microphone access is required for other participants to hear you.', 'error');
+	}
+}
+
 async function createPeer(id, name, initiator) {
 	if (peers.has(id)) return peers.get(id).connection;
+	if (!localStream) return null;
+	await ensureLocalAudioTrack();
 	const connection = new RTCPeerConnection({ iceServers });
 	peers.set(id, { connection, name });
 	localStream.getTracks().forEach((track) => connection.addTrack(track, localStream));
@@ -683,7 +697,7 @@ $('switch-camera-button').addEventListener('click', async () => {
 $('hand-button').addEventListener('click', () => {
 	handRaised = !handRaised;
 	$('hand-button').classList.toggle('active', handRaised);
-	$('hand-button').querySelector('strong').textContent = handRaised ? 'Lower hand' : 'Raise hand';
+	$('hand-button').querySelector('small').textContent = handRaised ? 'Lower hand' : 'Raise hand';
 	const participant = participants.get(socket.id);
 	if (participant) participant.handRaised = handRaised;
 	document.querySelector(`#tile-${localTileId} .hand-indicator`)?.classList.toggle('visible', handRaised);
