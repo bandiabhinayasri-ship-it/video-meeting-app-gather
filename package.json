@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "description": "Gather video meeting app",
-  "main": "backend/server.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node backend/server.js"
+    "start": "node server.js"
   },
   "engines": {
     "node": ">=20"

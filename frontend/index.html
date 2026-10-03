@@ -57,24 +57,26 @@
 		</header>
 		<section class="meeting-body">
 			<div id="video-grid" class="video-grid"></div>
-			<aside id="chat-panel" class="chat-panel">
-				<div class="chat-header"><div><p class="eyebrow">ROOM CHAT</p><h2>Conversation</h2></div><button id="close-chat" class="icon-button" type="button" aria-label="Close chat">&#10005;</button></div>
-				<div id="messages" class="messages" aria-live="polite"></div>
-				<form id="chat-form" class="chat-form"><input id="chat-input" placeholder="Write a message..." maxlength="1000" autocomplete="off"><button type="submit" aria-label="Send message">&#8594;</button></form>
-			</aside>
-			<aside id="host-panel" class="host-panel hidden">
-				<div class="chat-header"><div><p class="eyebrow">HOST CONTROLS</p><h2>Participants</h2></div><button id="close-host" class="icon-button" type="button" aria-label="Close host controls">&#10005;</button></div>
-				<div id="waiting-queue" class="waiting-queue hidden">
-					<p class="eyebrow">WAITING FOR APPROVAL</p>
-					<div id="pending-users"></div>
-				</div>
-				<div id="participant-list" class="participant-list"></div>
-			</aside>
-			<aside id="file-panel" class="file-panel hidden">
-				<div class="chat-header"><div><p class="eyebrow">FILE SHARING</p><h2>Files</h2></div><button id="close-files" class="icon-button" type="button" aria-label="Close files">&#10005;</button></div>
-				<div id="file-requests" class="file-list"></div>
-				<div id="active-transfers" class="file-list"></div>
-			</aside>
+			<div class="sidebar-stack">
+				<aside id="chat-panel" class="chat-panel">
+					<div class="chat-header"><div><p class="eyebrow">ROOM CHAT</p><h2>Conversation</h2></div><button id="close-chat" class="icon-button" type="button" aria-label="Close chat">&#10005;</button></div>
+					<div id="messages" class="messages" aria-live="polite"></div>
+					<form id="chat-form" class="chat-form"><input id="chat-input" placeholder="Write a message..." maxlength="1000" autocomplete="off"><button type="submit" aria-label="Send message">&#8594;</button></form>
+				</aside>
+				<aside id="host-panel" class="host-panel hidden">
+					<div class="chat-header"><div><p class="eyebrow">HOST CONTROLS</p><h2>Participants</h2></div><button id="close-host" class="icon-button" type="button" aria-label="Close host controls">&#10005;</button></div>
+					<div id="waiting-queue" class="waiting-queue hidden">
+						<p class="eyebrow">WAITING FOR APPROVAL</p>
+						<div id="pending-users"></div>
+					</div>
+					<div id="participant-list" class="participant-list"></div>
+				</aside>
+				<aside id="file-panel" class="file-panel hidden">
+					<div class="chat-header"><div><p class="eyebrow">FILE SHARING</p><h2>Files</h2></div><button id="close-files" class="icon-button" type="button" aria-label="Close files">&#10005;</button></div>
+					<div id="file-requests" class="file-list"></div>
+					<div id="active-transfers" class="file-list"></div>
+				</aside>
+			</div>
 			<aside id="utility-panel" class="utility-panel hidden" aria-label="More meeting controls">
 				<div class="more-sheet-header"><div><p class="eyebrow">GATHER MEETING</p><h2>More</h2></div><button id="close-utility" class="icon-button" type="button" aria-label="Close more options">&#10005;</button></div>
 				<div class="more-grid">
