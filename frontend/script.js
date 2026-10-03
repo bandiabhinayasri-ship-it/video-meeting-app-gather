@@ -95,8 +95,10 @@ function setActiveSpeaker(id) {
 	videoGrid.classList.toggle('active-speaker-mode', Boolean(id));
 	videoGrid.querySelectorAll('.video-tile').forEach((tile) => {
 		const tileId = tile.id.slice(5);
-		tile.classList.toggle('main-speaker', Boolean(id && tileId === id));
+		const isMainSpeaker = Boolean(id && tileId === id);
+		tile.classList.toggle('main-speaker', isMainSpeaker);
 		tile.classList.toggle('speaker-thumbnail', Boolean(id && tileId !== id));
+		tile.classList.toggle('active-speaker', isMainSpeaker);
 	});
 }
 
@@ -764,6 +766,7 @@ function setChatPanelOpen(isOpen) {
 
 function setHostPanelOpen(isOpen) {
 	$('host-panel').classList.toggle('hidden', !isOpen);
+	$('people-button').classList.toggle('active', isOpen);
 	if (isOpen) $('chat-panel').classList.remove('open');
 	if (isOpen) $('file-panel').classList.add('hidden');
 }
