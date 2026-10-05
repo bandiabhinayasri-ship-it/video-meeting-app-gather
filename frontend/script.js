@@ -72,6 +72,7 @@ function setupAudioAnalyser(id, video, stream, local) {
 	if (audioAnalyzers.has(id) || !stream?.getAudioTracks?.().length) return;
 	try {
 		audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
+		if (audioContext.state === 'suspended') audioContext.resume().catch(() => {});
 		const source = local ? audioContext.createMediaStreamSource(stream) : audioContext.createMediaElementSource(video);
 		const analyser = audioContext.createAnalyser();
 		analyser.fftSize = 512;
@@ -89,9 +90,11 @@ function setupAudioAnalyser(id, video, stream, local) {
 
 function setActiveSpeaker(id) {
 	if (screenStream) return;
-	if (activeSpeakerId === id) return;
-	activeSpeakerId = id;
-	activeSpeakerLastSwitch = performance.now();
+	if (activeSpeakerId !== id) {
+		activeSpeakerId = id;
+		activeSpeakerLastSwitch = performance.now();
+	}
+	videoGrid.style.setProperty('--speaker-thumbnail-count', Math.max(1, videoGrid.children.length - 1));
 	videoGrid.classList.toggle('active-speaker-mode', Boolean(id));
 	videoGrid.querySelectorAll('.video-tile').forEach((tile) => {
 		const tileId = tile.id.slice(5);
@@ -192,7 +195,10 @@ function publishMediaState() {
 	socket.emit('media-state', { audioMuted, videoMuted });
 }
 
-function updateCount() { $('participant-count').textContent = videoGrid.children.length; }
+function updateCount() {
+	$('participant-count').textContent = videoGrid.children.length;
+	if (activeSpeakerId) setActiveSpeaker(activeSpeakerId);
+}
 
 function showMeetingToast(message, type = 'info') {
 	const stack = $('meeting-notifications');
@@ -704,6 +710,7 @@ $('hand-button').addEventListener('click', () => {
 	if (participant) participant.handRaised = handRaised;
 	document.querySelector(`#tile-${localTileId} .hand-indicator`)?.classList.toggle('visible', handRaised);
 	socket.emit('hand-raise', handRaised);
+	setUtilityPanelOpen(false);
 });
 $('share-button').addEventListener('click', async () => {
 	if (screenStream) return stopSharing();
@@ -883,7 +890,10 @@ function setAudioOnlyMode(enabled) {
 	publishMediaState();
 }
 
-$('reactions-button').addEventListener('click', () => $('reaction-picker').classList.toggle('hidden'));
+$('reactions-button').addEventListener('click', () => {
+	setUtilityPanelOpen(false);
+	$('reaction-picker').classList.toggle('hidden');
+});
 document.querySelectorAll('#reaction-picker [data-reaction]').forEach((button) => button.addEventListener('click', () => {
 		const reaction = button.dataset.reaction;
 		showFloatingReaction(reaction, displayName, true);

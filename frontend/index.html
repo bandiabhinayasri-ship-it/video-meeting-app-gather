@@ -9,31 +9,32 @@
 </head>
 <body>
 	<main id="join-screen" class="join-screen">
-		<div class="join-copy">
+		<header class="landing-header">
 			<div class="wordmark landing-mark"><span>G</span> gather</div>
-			<p class="eyebrow">VIDEO MEETINGS, WITHOUT THE FUSS</p>
-			<h1>Make space<br><em>to meet.</em></h1>
-			<p class="intro">Start instantly, invite anyone with a link, and keep the conversation moving.</p>
+			<div class="landing-status"><span class="live-dot"></span> Video meetings, made simple</div>
+		</header>
+		<div class="join-copy">
+			<p class="eyebrow">A LITTLE CLOSER, FROM ANYWHERE</p>
+			<h1>Good to see<br><em>you here.</em></h1>
+			<p class="intro">Your next conversation is just a meeting link away.</p>
 		</div>
 		<section class="join-card">
-			<div class="brand-mark">G</div>
-			<h2>Ready when you are</h2>
-			<div class="entry-actions">
-				<button id="new-meeting-button" class="primary-button" type="button">Start an instant meeting <span aria-hidden="true">&#8594;</span></button>
-				<button id="get-link-button" class="secondary-button" type="button"><span>&#128279;</span> Get a meeting link</button>
-				<button id="schedule-button" class="secondary-button" type="button"><span>&#128197;</span> Schedule in Google Calendar</button>
-			</div>
-			<div class="invite-info"><strong>How to invite others</strong><span>Click “Get a meeting link”, copy the link, and send it to your participants.</span></div>
-			<div id="invite-box" class="invite-box hidden"><label for="invite-link">Your meeting link</label><div class="invite-row"><input id="invite-link" readonly><button id="copy-invite-button" type="button">Copy</button></div><p>Share this link, then join the meeting below.</p></div>
-			<div class="join-divider"><span>or join a meeting</span></div>
-			<form id="join-form">
+			<div class="join-card-heading"><div class="brand-mark">G</div><div><p class="eyebrow">WELCOME</p><h2>Join a meeting</h2></div></div>
+			<form id="join-form" class="join-form">
 			<label for="name">Your name</label>
 			<input id="name" name="name" autocomplete="name" placeholder="e.g. Alex Morgan" required maxlength="40">
 			<label for="room">Meeting link or code</label>
-			<input id="room" name="room" placeholder="e.g. morning-huddle" required maxlength="160">
-			<button class="text-button" type="submit">Join meeting <span aria-hidden="true">&#8594;</span></button>
+			<input id="room" name="room" placeholder="Paste a link or enter a code" required maxlength="160">
 			<p id="join-error" class="error" role="alert"></p>
+			<button class="primary-button" type="submit">Join meeting <span aria-hidden="true">&#8594;</span></button>
 			</form>
+			<div class="join-divider"><span>or get started</span></div>
+			<div class="entry-actions">
+				<button id="new-meeting-button" class="secondary-button" type="button"><span aria-hidden="true">&#43;</span> New meeting</button>
+				<button id="get-link-button" class="secondary-button" type="button"><span aria-hidden="true">&#128279;</span> Get a link</button>
+			</div>
+			<button id="schedule-button" class="schedule-link" type="button">Schedule a meeting <span aria-hidden="true">&#8594;</span></button>
+			<div id="invite-box" class="invite-box hidden"><label for="invite-link">Your meeting link</label><div class="invite-row"><input id="invite-link" readonly><button id="copy-invite-button" type="button">Copy</button></div><p>Share this link with your participants.</p></div>
 			<div id="schedule-fields" class="schedule-fields hidden">
 				<label for="schedule-title">Meeting title</label><input id="schedule-title" placeholder="Team sync">
 				<label for="schedule-date">Date and time</label><input id="schedule-date" type="datetime-local">
@@ -80,6 +81,8 @@
 			<aside id="utility-panel" class="utility-panel hidden" aria-label="More meeting controls">
 				<div class="more-sheet-header"><div><p class="eyebrow">GATHER MEETING</p><h2>More</h2></div><button id="close-utility" class="icon-button" type="button" aria-label="Close more options">&#10005;</button></div>
 				<div class="more-grid">
+					<button id="reactions-button" class="more-tile utility-action" type="button"><span class="more-icon">&#9786;</span><strong>Reactions</strong><small>Send a reaction</small></button>
+					<button id="hand-button" class="more-tile utility-action" type="button" title="Raise hand"><span class="more-icon">&#9995;</span><strong>Raise hand</strong><small>Raise hand</small></button>
 					<button id="captions-button" class="more-tile" type="button"><span class="more-icon">CC</span><strong>Captions</strong></button>
 					<button id="audio-button" class="more-tile" type="button"><span class="more-icon">&#128266;</span><strong>Audio</strong></button>
 					<button id="on-go-button" class="more-wide-tile" type="button"><span class="more-icon">&#128241;</span><strong>On the go</strong><small>Audio-only mode</small></button>
@@ -114,14 +117,18 @@
 			<p id="meeting-error" class="meeting-error" role="alert"></p>
 		</section>
 		<footer class="controls">
-			<button id="camera-button" class="control-button" type="button"><span>&#128249;</span><small>Camera</small></button>
-			<button id="mic-button" class="control-button" type="button"><span>&#127908;</span><small>Microphone</small></button>
-			<button id="reactions-button" class="control-button" type="button"><span>&#9786;</span><small>Reactions</small></button>
-			<button id="hand-button" class="control-button" type="button" title="Raise hand"><span>&#9995;</span><small>Raise hand</small></button>
-			<button id="share-button" class="control-button" type="button" title="Share your screen"><span>&#8593;</span><small>Share screen</small></button>
-			<button id="people-button" class="control-button" type="button"><span>👥</span><small>People</small></button>
-			<button id="more-button" class="control-button" type="button" title="More meeting options"><span>&#8942;</span><small>More</small></button>
-			<button id="leave-button" class="control-button leave" type="button"><span>&#10140;</span><small>Leave</small></button>
+			<div class="control-group control-group-primary">
+				<button id="mic-button" class="control-button" type="button" aria-label="Microphone"><span>&#127908;</span><small>Microphone</small></button>
+				<button id="camera-button" class="control-button" type="button" aria-label="Camera"><span>&#128249;</span><small>Camera</small></button>
+			</div>
+			<div class="control-group control-group-secondary">
+				<button id="share-button" class="control-button" type="button" title="Share your screen"><span>&#8593;</span><small>Present</small></button>
+				<button id="people-button" class="control-button" type="button"><span>&#128101;</span><small>People</small></button>
+				<button id="more-button" class="control-button" type="button" title="More meeting options"><span>&#8942;</span><small>More</small></button>
+			</div>
+			<div class="control-group control-group-end">
+				<button id="leave-button" class="control-button leave" type="button"><span>&#10140;</span><small>Leave</small></button>
+			</div>
 		</footer>
 		<div id="meeting-notifications" class="meeting-notifications" aria-live="polite"></div>
 	</main>
