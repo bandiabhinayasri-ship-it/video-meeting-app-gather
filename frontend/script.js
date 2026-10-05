@@ -273,6 +273,11 @@ function renderWaitingQueue(queue) {
 	const queueDiv = $('waiting-queue');
 	const pendingUsersDiv = $('pending-users');
 	pendingQueue = Array.isArray(queue) ? queue : [];
+	const visibleCount = isHost ? pendingQueue.length : 0;
+	const waitingCount = $('waiting-count');
+	waitingCount.textContent = visibleCount > 9 ? '9+' : String(visibleCount);
+	waitingCount.classList.toggle('hidden', visibleCount === 0);
+	waitingCount.setAttribute('aria-label', `${visibleCount} people waiting to join`);
 	
 	if (pendingQueue.length === 0 || !isHost) {
 		queueDiv.classList.add('hidden');
@@ -713,6 +718,7 @@ $('hand-button').addEventListener('click', () => {
 	setUtilityPanelOpen(false);
 });
 $('share-button').addEventListener('click', async () => {
+	setUtilityPanelOpen(false);
 	if (screenStream) return stopSharing();
 	const getDisplayMedia = navigator.mediaDevices?.getDisplayMedia?.bind(navigator.mediaDevices) || navigator.getDisplayMedia?.bind(navigator);
 	if (!getDisplayMedia) return showMeetingError('This browser cannot start screen sharing. Other participants can still view a share started from a supported laptop browser.');
@@ -767,26 +773,40 @@ $('chat-form').addEventListener('submit', (event) => { event.preventDefault(); c
 
 function setChatPanelOpen(isOpen) {
 	$('chat-panel').classList.toggle('open', isOpen);
-	if (isOpen) $('host-panel').classList.add('hidden');
-	if (isOpen) $('file-panel').classList.add('hidden');
+	$('header-chat-button').classList.toggle('active', isOpen);
+	if (isOpen) {
+		$('host-panel').classList.add('hidden');
+		$('file-panel').classList.add('hidden');
+		setUtilityPanelOpen(false);
+	}
 }
 
 function setHostPanelOpen(isOpen) {
 	$('host-panel').classList.toggle('hidden', !isOpen);
 	$('people-button').classList.toggle('active', isOpen);
-	if (isOpen) $('chat-panel').classList.remove('open');
-	if (isOpen) $('file-panel').classList.add('hidden');
+	if (isOpen) {
+		$('chat-panel').classList.remove('open');
+		$('file-panel').classList.add('hidden');
+		setUtilityPanelOpen(false);
+	}
 }
 
 function setFilePanelOpen(isOpen) {
 	$('file-panel').classList.toggle('hidden', !isOpen);
-	if (isOpen) $('chat-panel').classList.remove('open');
-	if (isOpen) $('host-panel').classList.add('hidden');
+	if (isOpen) {
+		$('chat-panel').classList.remove('open');
+		$('host-panel').classList.add('hidden');
+		setUtilityPanelOpen(false);
+	}
 }
 
-$('chat-button').addEventListener('click', () => {
+$('header-chat-button').addEventListener('click', () => {
 	const shouldOpen = !$('chat-panel').classList.contains('open');
 	setChatPanelOpen(shouldOpen);
+});
+$('people-button').addEventListener('click', () => {
+	const shouldOpen = $('host-panel').classList.contains('hidden');
+	setHostPanelOpen(shouldOpen);
 });
 $('close-chat').addEventListener('click', () => setChatPanelOpen(false));
 $('host-button').addEventListener('click', () => {
@@ -880,6 +900,11 @@ function setUtilityPanelOpen(isOpen) {
 }
 $('more-button').addEventListener('click', () => setUtilityPanelOpen(utilityPanel.classList.contains('hidden')));
 $('close-utility').addEventListener('click', () => setUtilityPanelOpen(false));
+$('speaker-button').addEventListener('click', () => {
+	setUtilityPanelOpen(true);
+	$('audioOutputSelect').focus();
+	$('audioOutputSelect').scrollIntoView({ block: 'center', behavior: 'smooth' });
+});
 
 function setAudioOnlyMode(enabled) {
 	const track = localStream?.getVideoTracks()[0];
