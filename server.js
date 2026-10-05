@@ -9,7 +9,7 @@ const io = new Server(server, {
 	cors: { origin: true, credentials: true }
 });
 
-const frontendPath = path.join(__dirname, '..', 'frontend');
+const frontendPath = path.join(__dirname, 'frontend');
 app.use(express.static(frontendPath));
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.get('/api/ice-servers', (req, res) => {
