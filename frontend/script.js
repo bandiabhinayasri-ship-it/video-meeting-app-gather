@@ -36,6 +36,9 @@ const joinScreen = $('join-screen');
 const meetingScreen = $('meeting-screen');
 const waitingScreen = $('waiting-screen');
 const videoGrid = $('video-grid');
+const speakerLayout = $('speaker-layout');
+const speakerStage = $('speaker-stage');
+const participantRail = $('participant-rail');
 
 function addVideo(id, name, stream, local = false) {
 	let tile = document.getElementById(`tile-${id}`);
@@ -89,20 +92,25 @@ function setupAudioAnalyser(id, video, stream, local) {
 }
 
 function setActiveSpeaker(id) {
-	if (screenStream) return;
+	if (screenStream && id) return;
 	if (activeSpeakerId !== id) {
 		activeSpeakerId = id;
 		activeSpeakerLastSwitch = performance.now();
 	}
-	videoGrid.style.setProperty('--speaker-thumbnail-count', Math.max(1, videoGrid.children.length - 1));
+	const tiles = [...videoGrid.querySelectorAll('.video-tile')];
 	videoGrid.classList.toggle('active-speaker-mode', Boolean(id));
-	videoGrid.querySelectorAll('.video-tile').forEach((tile) => {
+	tiles.forEach((tile) => {
 		const tileId = tile.id.slice(5);
 		const isMainSpeaker = Boolean(id && tileId === id);
+		const isSelfPreview = Boolean(id && !isMainSpeaker && tile.classList.contains('local-tile'));
 		tile.classList.toggle('main-speaker', isMainSpeaker);
-		tile.classList.toggle('speaker-thumbnail', Boolean(id && tileId !== id));
+		tile.classList.toggle('speaker-thumbnail', Boolean(id && tileId !== id && !isSelfPreview));
+		tile.classList.toggle('self-preview', isSelfPreview);
 		tile.classList.toggle('active-speaker', isMainSpeaker);
+		if (!id) videoGrid.appendChild(tile);
+		else (isMainSpeaker || isSelfPreview ? speakerStage : participantRail).appendChild(tile);
 	});
+	speakerLayout.classList.toggle('hidden', !id);
 }
 
 function updateActiveSpeaker() {
@@ -196,7 +204,7 @@ function publishMediaState() {
 }
 
 function updateCount() {
-	$('participant-count').textContent = videoGrid.children.length;
+	$('participant-count').textContent = videoGrid.querySelectorAll('.video-tile').length;
 	if (activeSpeakerId) setActiveSpeaker(activeSpeakerId);
 }
 
@@ -900,11 +908,6 @@ function setUtilityPanelOpen(isOpen) {
 }
 $('more-button').addEventListener('click', () => setUtilityPanelOpen(utilityPanel.classList.contains('hidden')));
 $('close-utility').addEventListener('click', () => setUtilityPanelOpen(false));
-$('speaker-button').addEventListener('click', () => {
-	setUtilityPanelOpen(true);
-	$('audioOutputSelect').focus();
-	$('audioOutputSelect').scrollIntoView({ block: 'center', behavior: 'smooth' });
-});
 
 function setAudioOnlyMode(enabled) {
 	const track = localStream?.getVideoTracks()[0];

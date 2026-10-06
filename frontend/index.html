@@ -60,7 +60,12 @@
 			</div>
 		</header>
 		<section class="meeting-body">
-			<div id="video-grid" class="video-grid"></div>
+			<div id="video-grid" class="video-grid">
+				<div id="speaker-layout" class="speaker-layout hidden">
+					<div id="speaker-stage" class="speaker-stage"></div>
+					<div id="participant-rail" class="participant-rail" aria-label="Other participants"></div>
+				</div>
+			</div>
 			<div class="sidebar-stack">
 				<aside id="chat-panel" class="chat-panel">
 					<div class="chat-header"><div><p class="eyebrow">ROOM CHAT</p><h2>Conversation</h2></div><button id="close-chat" class="icon-button" type="button" aria-label="Close chat">&#10005;</button></div>
@@ -121,7 +126,6 @@
 		<footer class="controls">
 			<div class="control-group control-group-primary">
 				<button id="mic-button" class="control-button" type="button" aria-label="Microphone"><span>&#127908;</span><small>Microphone</small></button>
-				<button id="speaker-button" class="control-button" type="button" title="Choose speaker" aria-label="Choose speaker"><span>&#128266;</span><small>Speaker</small></button>
 				<button id="camera-button" class="control-button" type="button" aria-label="Camera"><span>&#128249;</span><small>Camera</small></button>
 				<button id="hand-button" class="control-button" type="button" title="Raise hand"><span>&#9995;</span><small>Raise hand</small></button>
 				<button id="header-chat-button" class="control-button" type="button" title="Open chat" aria-label="Open chat"><span>&#128172;</span><small>Chat</small></button>
