@@ -93,9 +93,7 @@
 					<button id="share-button" class="more-tile utility-action" type="button" title="Present your screen"><span class="more-icon">&#8593;</span><strong>Present now</strong><small>Share your screen</small></button>
 					<button id="captions-button" class="more-tile" type="button"><span class="more-icon">CC</span><strong>Captions</strong></button>
 					<button id="audio-button" class="more-tile" type="button"><span class="more-icon">&#128266;</span><strong>Audio</strong></button>
-					<button id="on-go-button" class="more-wide-tile" type="button"><span class="more-icon">&#128241;</span><strong>On the go</strong><small>Audio-only mode</small></button>
 					<button id="settings-button" class="more-wide-tile" type="button"><span class="more-icon">&#9881;</span><strong>Settings</strong></button>
-					<button id="tools-button" class="more-tile" type="button"><span class="more-icon">&#9881;</span><strong>Tools</strong></button>
 					<button id="report-button" class="more-tile" type="button"><span class="more-icon">&#9888;</span><strong>Report abuse</strong></button>
 				</div>
 				<section id="settings-section" class="settings-section hidden" aria-label="Meeting settings">
@@ -108,12 +106,10 @@
 				<div class="more-secondary-actions">
 					<button id="switch-camera-button" class="secondary-button compact-button" type="button">Switch camera</button>
 					<button id="fullscreenBtn" class="secondary-button compact-button" type="button">Fullscreen</button>
-					<button id="record-button" class="secondary-button compact-button" type="button">Record</button>
-					<button id="host-button" class="secondary-button compact-button hidden" type="button">People</button>
+					<button id="record-button" class="secondary-button compact-button" type="button"><span class="more-icon">&#9210;</span><small>Record</small></button>
 					<button id="file-button" class="secondary-button compact-button hidden" type="button">Files</button>
 				</div>
-				<section class="utility-section"><h3>Invite people</h3><p class="panel-hint">Send the meeting link by email.</p><div class="invite-row"><input id="invite-email" type="email" placeholder="name@example.com" autocomplete="email"><button id="email-invite-button" type="button">Send</button></div></section>
-				<section class="utility-section"><h3>Accessibility</h3><label class="setting-toggle"><input id="captions-toggle" type="checkbox"><span>Turn on captions (CC)</span></label></section>
+				<section class="utility-section"><h3>Invite people</h3><p class="panel-hint">Copy the meeting link or send an email invitation.</p><div class="invite-row"><input id="invite-email" type="email" placeholder="name@example.com" autocomplete="email"><button id="email-invite-button" type="button">Email</button></div><button id="copy-meeting-invite" class="secondary-button compact-button" type="button">Copy meeting link</button></section>
 				<section class="utility-section"><h3>Video effects</h3><label for="video-effect-select">Camera effect</label><select id="video-effect-select"><option value="none">None</option><option value="soft-blur">Soft blur</option><option value="dim">Dim</option><option value="contrast">High contrast</option></select></section>
 				<section class="utility-section"><h3>Audio</h3><label for="audioOutputSelect">Speaker</label><select id="audioOutputSelect"><option value="">Default speaker</option></select><button id="refresh-audio-button" class="secondary-button compact-button" type="button">Refresh devices</button></section>
 				<section id="report-section" class="utility-section hidden"><label for="report-text">What went wrong?</label><textarea id="report-text" rows="3" maxlength="500" placeholder="Tell us what happened"></textarea><button id="send-report-button" class="primary-button compact-button" type="button">Send report</button></section>

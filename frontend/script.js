@@ -241,7 +241,8 @@ function createRoomCode() {
 }
 
 function meetingLink(room = currentRoom) {
-	return `${window.location.origin}/?room=${encodeURIComponent(room)}`;
+	const roomId = String(room || $('room')?.value.trim() || createRoomCode()).trim();
+	return `${window.location.origin}/?room=${encodeURIComponent(roomId)}`;
 }
 
 function calendarDate(value) {
@@ -332,10 +333,19 @@ async function createPeer(id, name, initiator) {
 	if (!localStream) return null;
 	await ensureLocalAudioTrack();
 	const connection = new RTCPeerConnection({ iceServers });
-	peers.set(id, { connection, name });
-	localStream.getTracks().forEach((track) => connection.addTrack(track, localStream));
+	const videoTrack = screenStream?.getVideoTracks()[0] || localStream.getVideoTracks()[0];
+	const outgoingStream = new MediaStream([...localStream.getAudioTracks(), ...(videoTrack ? [videoTrack] : [])]);
+	outgoingStream.getTracks().forEach((track) => connection.addTrack(track, outgoingStream));
+	const screenAudioTransceiver = connection.addTransceiver('audio', { direction: 'sendrecv' });
+	const screenAudioTrack = screenStream?.getAudioTracks()[0];
+	if (screenAudioTrack) await screenAudioTransceiver.sender.replaceTrack(screenAudioTrack);
+	const remoteStream = new MediaStream();
+	peers.set(id, { connection, name, screenAudioSender: screenAudioTransceiver.sender, remoteStream });
 	connection.onicecandidate = ({ candidate }) => candidate && socket.emit('signal', { target: id, signal: { candidate } });
-	connection.ontrack = ({ streams }) => addVideo(id, name, streams[0]);
+	connection.ontrack = ({ track }) => {
+		if (!remoteStream.getTracks().some((receivedTrack) => receivedTrack.id === track.id)) remoteStream.addTrack(track);
+		addVideo(id, name, remoteStream);
+	};
 	connection.onconnectionstatechange = () => {
 		if (connection.connectionState === 'failed') {
 			if (!iceRestartInProgress) {
@@ -546,7 +556,11 @@ socket.on('waiting-queue', (queue) => {
 });
 socket.on('host-status', (host) => {
 	isHost = host;
-	$('host-button').classList.toggle('hidden', !host);
+	const self = participants.get(socket.id);
+	if (self) {
+		self.isHost = host;
+		self.role = host ? 'host' : 'participant';
+	}
 	$('host-panel').classList.add('hidden');
 	$('record-button').classList.toggle('hidden', !host);
 	renderWaitingQueue(pendingQueue);
@@ -606,8 +620,15 @@ socket.on('reaction', ({ id, name, reaction }) => {
 	if (id === socket.id) return;
 	showFloatingReaction(reaction, name);
 });
-socket.on('recording-started', () => { $('record-button').classList.add('active'); document.querySelector('#record-button small').textContent = 'Stop'; showMeetingError('Recording started'); });
-socket.on('recording-stopped', () => { $('record-button').classList.remove('active'); document.querySelector('#record-button small').textContent = 'Record'; showMeetingError('Recording stopped'); });
+socket.on('permission-denied', (message) => showMeetingToast(message, 'error'));
+socket.on('report-received', ({ name, text }) => showMeetingToast(`Report from ${name}: ${text}`, 'error'));
+socket.on('report-submitted', () => showMeetingToast('Your report was sent to the host.'));
+socket.on('recording-started', ({ name } = {}) => {
+	if (!isHost) showMeetingToast(`${name || 'The host'} started recording.`);
+});
+socket.on('recording-stopped', ({ name } = {}) => {
+	if (!isHost) showMeetingToast(`${name || 'The host'} stopped recording.`);
+});
 socket.on('file-share-pending', ({ from, fromName, filename, size }) => {
 	const fileRequests = $('file-requests');
 	const item = document.createElement('div');
@@ -729,37 +750,45 @@ $('share-button').addEventListener('click', async () => {
 	setUtilityPanelOpen(false);
 	if (screenStream) return stopSharing();
 	const getDisplayMedia = navigator.mediaDevices?.getDisplayMedia?.bind(navigator.mediaDevices) || navigator.getDisplayMedia?.bind(navigator);
-	if (!getDisplayMedia) return showMeetingError('This browser cannot start screen sharing. Other participants can still view a share started from a supported laptop browser.');
+	if (!getDisplayMedia) return showMeetingToast('This browser does not support screen sharing.', 'error');
 	try {
-		screenStream = await getDisplayMedia({ video: true });
+		screenStream = await getDisplayMedia({ video: true, audio: true });
 		setActiveSpeaker(null);
 		videoGrid.classList.add('presentation-mode');
 		const track = screenStream.getVideoTracks()[0];
+		if (!track) throw new Error('The browser returned no screen video track.');
+		const sharedAudioTrack = screenStream.getAudioTracks()[0];
 		for (const { connection } of peers.values()) {
 			const sender = connection.getSenders().find((item) => item.track?.kind === 'video');
 			if (sender) await sender.replaceTrack(track);
+		}
+		if (sharedAudioTrack) {
+			for (const { screenAudioSender } of peers.values()) await screenAudioSender?.replaceTrack(sharedAudioTrack);
+			showMeetingToast('Screen and shared-tab audio are being presented.');
+		} else {
+			showMeetingToast('Screen shared. Select a browser tab and enable Share tab audio to send sound.');
 		}
 		addVideo(localTileId, displayName, screenStream, true);
 		track.onended = stopSharing;
 		$('share-button').classList.add('active');
 		document.querySelector('#share-button small').textContent = 'Stop sharing';
-		if (isPresenter) {
-			isPresenter = true;
-			io.to(currentRoom).emit('participant-role-changed', { id: socket.id, role: 'presenter' });
-		}
 	} catch (error) {
 		if (error.name === 'AbortError' || error.name === 'NotAllowedError') return;
 		const message = error.name === 'NotReadableError'
 			? 'Your browser could not capture that screen. Close other screen-sharing sessions and try again.'
-			: `Screen sharing failed (${error.name || 'browser error'}). Check the browser permission and try again.`;
-		showMeetingError(message);
+			: `Screen sharing failed: ${error.message || error.name || 'browser error'}`;
+		screenStream?.getTracks().forEach((item) => item.stop());
+		screenStream = null;
+		videoGrid.classList.remove('presentation-mode');
+		showMeetingToast(message, 'error');
 	}
 });
 function stopSharing() {
 	const track = localStream?.getVideoTracks()[0];
-	for (const { connection } of peers.values()) {
+	for (const { connection, screenAudioSender } of peers.values()) {
 		const sender = connection.getSenders().find((item) => item.track?.kind === 'video');
 		if (sender && track) sender.replaceTrack(track);
+		screenAudioSender?.replaceTrack(null).catch(() => {});
 	}
 	screenStream?.getTracks().forEach((item) => item.stop());
 	screenStream = null;
@@ -768,6 +797,7 @@ function stopSharing() {
 	addVideo(localTileId, displayName, localStream, true);
 	$('share-button').classList.remove('active');
 	document.querySelector('#share-button small').textContent = 'Share screen';
+	showMeetingToast('Screen sharing stopped.');
 	if (isPresenter && isHost) {
 		isPresenter = false;
 		socket.emit('participant-role-changed', { id: socket.id, role: 'participant' });
@@ -817,43 +847,62 @@ $('people-button').addEventListener('click', () => {
 	setHostPanelOpen(shouldOpen);
 });
 $('close-chat').addEventListener('click', () => setChatPanelOpen(false));
-$('host-button').addEventListener('click', () => {
-	const shouldOpen = $('host-panel').classList.contains('hidden');
-	setHostPanelOpen(shouldOpen);
-});
 $('close-host').addEventListener('click', () => setHostPanelOpen(false));
 $('file-button').addEventListener('click', () => {
 	const shouldOpen = $('file-panel').classList.contains('hidden');
 	setFilePanelOpen(shouldOpen);
 });
 $('close-files').addEventListener('click', () => setFilePanelOpen(false));
+async function copyMeetingLink() {
+	const link = meetingLink();
+	try {
+		await navigator.clipboard.writeText(link);
+		return true;
+	} catch {
+		const input = $('invite-link');
+		input.value = link;
+		input.focus();
+		input.select();
+		return document.execCommand('copy');
+	}
+}
 $('copy-link-button').addEventListener('click', async () => {
-	try { await navigator.clipboard.writeText(meetingLink()); $('copy-link-button').textContent = 'Link copied'; window.setTimeout(() => { $('copy-link-button').textContent = 'Copy invite link'; }, 1800); } catch { showMeetingError(`Invite link: ${meetingLink()}`); }
+	const copied = await copyMeetingLink();
+	showMeetingToast(copied ? 'Meeting link copied.' : `Meeting link: ${meetingLink()}`, copied ? 'info' : 'error');
+});
+$('copy-meeting-invite').addEventListener('click', async () => {
+	const copied = await copyMeetingLink();
+	showMeetingToast(copied ? 'Meeting link copied.' : `Meeting link: ${meetingLink()}`, copied ? 'info' : 'error');
 });
 $('record-button').addEventListener('click', () => {
-	if (!isHost) return showMeetingError('Only the host can record this meeting.');
+	if (!isHost) return showMeetingToast('Only the host can record this meeting.', 'error');
 	if (recorder?.state === 'recording') return recorder.stop();
-	if (!window.MediaRecorder || !localStream) return showMeetingError('Recording is not supported by this browser.');
+	if (!window.MediaRecorder || !localStream) return showMeetingToast('Recording is not supported by this browser.', 'error');
 	const videoTrack = screenStream?.getVideoTracks()[0] || localStream.getVideoTracks()[0];
+	if (!videoTrack) return showMeetingToast('Turn on your camera or start presenting before recording.', 'error');
 	const recordStream = new MediaStream([videoTrack, ...localStream.getAudioTracks()]);
 	recordingChunks = [];
 	const mimeType = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'].find((type) => MediaRecorder.isTypeSupported(type));
-	try { recorder = new MediaRecorder(recordStream, mimeType ? { mimeType } : undefined); } catch { return showMeetingError('Recording is not supported by this browser.'); }
+	try { recorder = new MediaRecorder(recordStream, mimeType ? { mimeType } : undefined); } catch { return showMeetingToast('Recording could not start in this browser.', 'error'); }
 	recorder.ondataavailable = (event) => event.data.size && recordingChunks.push(event.data);
-	recorder.onstop = () => { 
+	recorder.onerror = () => showMeetingToast('The browser stopped the recording because of an error.', 'error');
+	recorder.onstop = () => {
 		const link = document.createElement('a');
-		link.href = URL.createObjectURL(new Blob(recordingChunks, { type: 'video/webm' }));
+		const downloadUrl = URL.createObjectURL(new Blob(recordingChunks, { type: 'video/webm' }));
+		link.href = downloadUrl;
 		link.download = `gather-${currentRoom}-${Date.now()}.webm`;
 		link.click();
-		URL.revokeObjectURL(link.href);
+		window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
 		$('record-button').classList.remove('active');
 		document.querySelector('#record-button small').textContent = 'Record';
 		socket.emit('recording-stop');
+		showMeetingToast('Recording stopped and saved to downloads.');
 	};
-	recorder.start();
+	try { recorder.start(); } catch { return showMeetingToast('Recording could not start.', 'error'); }
 	socket.emit('recording-start');
 	$('record-button').classList.add('active');
 	document.querySelector('#record-button small').textContent = 'Stop recording';
+	showMeetingToast('Recording started.');
 });
 $('cancel-wait-button').addEventListener('click', () => { socket.disconnect(); window.location.reload(); });
 $('leave-button').addEventListener('click', () => { localStream?.getTracks().forEach((track) => track.stop()); screenStream?.getTracks().forEach((track) => track.stop()); socket.disconnect(); window.location.reload(); });
@@ -909,15 +958,6 @@ function setUtilityPanelOpen(isOpen) {
 $('more-button').addEventListener('click', () => setUtilityPanelOpen(utilityPanel.classList.contains('hidden')));
 $('close-utility').addEventListener('click', () => setUtilityPanelOpen(false));
 
-function setAudioOnlyMode(enabled) {
-	const track = localStream?.getVideoTracks()[0];
-	if (!track) return showMeetingToast('Camera is not available.', 'error');
-	track.enabled = !enabled;
-	$('camera-button').classList.toggle('muted', enabled);
-	document.querySelector('#camera-button small').textContent = enabled ? 'Video off' : 'Camera';
-	publishMediaState();
-}
-
 $('reactions-button').addEventListener('click', () => {
 	setUtilityPanelOpen(false);
 	$('reaction-picker').classList.toggle('hidden');
@@ -929,20 +969,14 @@ document.querySelectorAll('#reaction-picker [data-reaction]').forEach((button) =
 		$('reaction-picker').classList.add('hidden');
 	}));
 $('captions-button').addEventListener('click', () => {
-		const captions = $('captions-toggle');
-		captions.checked = !captions.checked;
-		captions.dispatchEvent(new Event('change'));
+	const captions = $('settings-captions-toggle');
+	captions.checked = !captions.checked;
+	captions.dispatchEvent(new Event('change'));
 });
 $('audio-button').addEventListener('click', () => {
-		$('audioOutputSelect').focus();
-		showMeetingToast('Choose your speaker in Audio settings.');
+	$('audioOutputSelect').scrollIntoView({ block: 'center', behavior: 'smooth' });
+	$('audioOutputSelect').focus();
 });
-$('on-go-button').addEventListener('click', () => {
-		const enabled = !$('camera-button').classList.contains('muted');
-		setAudioOnlyMode(enabled);
-		showMeetingToast(enabled ? 'On the go mode enabled.' : 'Video mode restored.');
-});
-$('tools-button').addEventListener('click', () => showMeetingToast('Polls, Q&A, whiteboard, and notes are coming soon.'));
 
 async function getAudioDevices() {
 		const select = $('audioOutputSelect');
@@ -973,36 +1007,13 @@ $('video-effect-select').addEventListener('change', (event) => {
 });
 
 let captionRecognition;
-$('captions-toggle').addEventListener('change', (event) => {
-		const captionDisplay = $('caption-display');
-	$('settings-captions-toggle').checked = event.target.checked;
-		const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-		if (!event.target.checked) {
-			captionDisplay.classList.add('hidden');
-		captionDisplay.textContent = '';
-			captionRecognition?.stop();
-			return;
-		}
-		if (!Recognition) {
-		captionDisplay.textContent = 'Live captions unavailable in this browser';
-		captionDisplay.classList.remove('hidden');
-		return;
-		}
-		captionDisplay.classList.remove('hidden');
-		captionRecognition = new Recognition();
-		captionRecognition.continuous = true;
-		captionRecognition.interimResults = true;
-		captionRecognition.onresult = (resultEvent) => {
-			captionDisplay.textContent = [...resultEvent.results].map((result) => result[0].transcript).join(' ');
-		};
-		captionRecognition.onend = () => { if ($('captions-toggle').checked) captionRecognition.start(); };
-			captionRecognition.start();
-});
 
 $('email-invite-button').addEventListener('click', () => {
-		const email = $('invite-email').value.trim();
-		if (!email) return showMeetingError('Enter an email address first.');
-		window.location.href = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(`Invite to ${currentRoom || 'Gather meeting'}`)}&body=${encodeURIComponent(`Join my meeting: ${meetingLink()}`)}`;
+	const email = $('invite-email').value.trim();
+	if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showMeetingToast('Enter a valid email address.', 'error');
+	const subject = encodeURIComponent(`Invite to ${currentRoom || 'Gather meeting'}`);
+	const body = encodeURIComponent(`Join my meeting: ${meetingLink()}`);
+	window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
 });
 $('settings-button').addEventListener('click', () => {
 	setUtilityPanelOpen(true);
@@ -1014,8 +1025,28 @@ $('close-settings').addEventListener('click', () => {
 	$('utility-panel').classList.remove('show-settings');
 });
 $('settings-captions-toggle').addEventListener('change', (event) => {
-	$('captions-toggle').checked = event.target.checked;
-	$('captions-toggle').dispatchEvent(new Event('change'));
+	const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+	const captionDisplay = $('caption-display');
+	if (!event.target.checked) {
+		captionDisplay.classList.add('hidden');
+		captionDisplay.textContent = '';
+		captionRecognition?.stop();
+		return;
+	}
+	if (!Recognition) {
+		captionDisplay.textContent = 'Live captions are unavailable in this browser.';
+		captionDisplay.classList.remove('hidden');
+		return;
+	}
+	captionDisplay.classList.remove('hidden');
+	captionRecognition = new Recognition();
+	captionRecognition.continuous = true;
+	captionRecognition.interimResults = true;
+	captionRecognition.onresult = (resultEvent) => {
+		captionDisplay.textContent = [...resultEvent.results].map((result) => result[0].transcript).join(' ');
+	};
+	captionRecognition.onend = () => { if ($('settings-captions-toggle').checked) captionRecognition.start(); };
+	captionRecognition.start();
 });
 $('hide-video-tiles-toggle').addEventListener('change', (event) => {
 	hideVideoTiles = event.target.checked;
@@ -1034,9 +1065,9 @@ $('settings-feedback').addEventListener('click', () => {
 });
 $('report-button').addEventListener('click', () => $('report-section').classList.toggle('hidden'));
 $('send-report-button').addEventListener('click', () => {
-		const report = $('report-text').value.trim();
-		if (!report) return showMeetingError('Describe the problem before sending.');
-		socket.emit('report-problem', report);
-		showMeetingError('Thanks. Your problem report was sent.');
-		$('report-text').value = '';
+	const report = $('report-text').value.trim();
+	if (!report) return showMeetingToast('Describe the problem before sending.', 'error');
+	if (!socket.connected) return showMeetingToast('You are disconnected; the report was not sent.', 'error');
+	socket.emit('report-problem', report);
+	$('report-text').value = '';
 });

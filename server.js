@@ -73,7 +73,7 @@ io.on('connection', (socket) => {
 				socket.emit('room-users', [...room.entries()].filter(([id]) => id !== socket.id).map(([id, participant]) => ({ id, ...participant })));
 				socket.emit('approval-granted');
 				acknowledge?.({ state: 'approved', host: false });
-				io.to(cleanRoomId).emit('user-joined', { id: socket.id, name: cleanName, email: cleanEmail });
+				socket.to(cleanRoomId).emit('user-joined', { id: socket.id, name: cleanName, email: cleanEmail });
 				return;
 			}
 			const waitingQueue = waitingQueues.get(cleanRoomId) || new Map();
@@ -127,7 +127,7 @@ io.on('connection', (socket) => {
 				io.to(target).emit('room-users', peers);
 				const queueList = [...waitingQueue.entries()].map(([id, user]) => ({ id, ...user }));
 				io.to(socket.data.roomId).emit('waiting-queue', queueList);
-				socket.to(socket.data.roomId).emit('user-joined', { id: target, name: pendingUser.name, email: pendingUser.email });
+				approvedSocket.to(socket.data.roomId).emit('user-joined', { id: target, name: pendingUser.name, email: pendingUser.email });
 			}
 		} else if (action === 'reject') {
 			const waitingQueue = waitingQueues.get(socket.data.roomId);
@@ -170,8 +170,10 @@ io.on('connection', (socket) => {
 
 	socket.on('reaction', (emoji) => {
 		const roomId = socket.data.roomId;
-		if (!roomId || roomSettings.get(roomId)?.reactionsAllowed === false) return socket.emit('permission-denied', 'The host has disabled reactions.');
-		io.to(roomId).emit('reaction', { name: socket.data.name || 'Someone', emoji: String(emoji || '').slice(0, 4) });
+		const room = rooms.get(roomId);
+		if (!room?.has(socket.id)) return;
+		if (roomSettings.get(roomId)?.reactionsAllowed === false) return socket.emit('permission-denied', 'The host has disabled reactions.');
+		io.to(roomId).emit('reaction', { id: socket.id, name: socket.data.name || 'Someone', reaction: String(emoji || '').slice(0, 8) });
 	});
 
 	socket.on('control-request', ({ target }) => {
@@ -204,8 +206,15 @@ io.on('connection', (socket) => {
 
 	socket.on('report-problem', (text) => {
 		const report = typeof text === 'string' ? text.trim().slice(0, 500) : '';
-		if (!report || !socket.data.roomId) return;
+		const room = rooms.get(socket.data.roomId);
+		const sender = room?.get(socket.id);
+		if (!report || !sender) return;
 		console.warn(`[meeting-report] room=${socket.data.roomId} user=${socket.data.name || 'Guest'}: ${report}`);
+		const host = [...room.entries()].find(([, participant]) => participant.isHost);
+		if (host && host[0] !== socket.id) {
+			io.to(host[0]).emit('report-received', { name: sender.name, text: report, timestamp: Date.now() });
+		}
+		socket.emit('report-submitted');
 	});
 
 	socket.on('hand-raise', (raised) => {
@@ -226,12 +235,14 @@ io.on('connection', (socket) => {
 
 	socket.on('recording-start', () => {
 		const room = rooms.get(socket.data.roomId);
-		if (room?.get(socket.id)?.isHost) io.to(socket.data.roomId).emit('recording-started', { timestamp: Date.now() });
+		const host = room?.get(socket.id);
+		if (host?.isHost) io.to(socket.data.roomId).emit('recording-started', { name: host.name || 'The host', timestamp: Date.now() });
 	});
 
 	socket.on('recording-stop', () => {
 		const room = rooms.get(socket.data.roomId);
-		if (room?.get(socket.id)?.isHost) io.to(socket.data.roomId).emit('recording-stopped', { timestamp: Date.now() });
+		const host = room?.get(socket.id);
+		if (host?.isHost) io.to(socket.data.roomId).emit('recording-stopped', { name: host.name || 'The host', timestamp: Date.now() });
 	});
 
 	socket.on('file-share-request', ({ to, filename, size }) => io.to(to).emit('file-share-pending', { from: socket.id, fromName: socket.data.name, filename, size }));
@@ -246,8 +257,9 @@ io.on('connection', (socket) => {
 		if (waitingQueue?.has(socket.id)) {
 			waitingQueue.delete(socket.id);
 			io.to(roomId).emit('waiting-queue', [...waitingQueue.entries()].map(([id, user]) => ({ id, ...user })));
+			return;
 		}
-		if (!room) return;
+		if (!room?.has(socket.id)) return;
 		const wasHost = room.get(socket.id)?.isHost;
 		room.delete(socket.id);
 		if (wasHost && room.size > 0) {
